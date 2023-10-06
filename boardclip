@@ -1,0 +1,106 @@
+#!/bin/bash
+
+check_yad() {
+  if ! which yad >/dev/null
+  then
+    echo "'yad' not found!"
+    echo "Please install it, as Boardclip depends on it."
+    exit 127
+  fi
+}
+
+check_xclip() {
+  if ! which xclip >/dev/null
+  then
+    echo "'xclip' not found!"
+    echo "Please install it, as Boardclip depends on it."
+    exit 127
+  fi
+}
+
+#check_cfg_dir() {
+#  
+#}
+BOARDCLIP_DIR=~/.config/Boardclip
+BOARDCLIP_CFG=$BOARDCLIP_DIR/config
+source $BOARDCLIP_CFG
+
+XCLIP_SELECTION="xclip -i"
+XCLIP_CLIPBOARD="xclip -selection clipboard -i"
+# Defaulting 'xclip' to copy to clipboard
+XCLIP=$XCLIP_CLIPBOARD
+
+# Default variables that can be changed in ~/.config/Boardclip/config
+MAX_VERTICAL=${MAX_VERTICAL:=5}
+MAX_HORIZONTAL=${MAX_HORIZONTAL:=25}
+YAD_BORDERS=${YAD_BORDERS:=20}
+YAD_BUTTONS_LAYOUT=${YAD_BUTTONS_LAYOUT:=center}
+
+# Defualt variables
+YAD_TITLE=Boardclip
+YAD_OPTIONS="--title $YAD_TITLE
+--buttons-layout $YAD_BUTTONS_LAYOUT
+--borders $YAD_BORDERS
+--align-buttons
+--no-buttons
+--form"
+
+# Create a variable containing the needed paths (only files or links recursively, excluding Boardclip's config)
+FILES="$(find $BOARDCLIP_DIR -type f,l ! -name config)"
+
+create_yad_buttons () {
+  # Dynamically creates yad's buttons based on the amount and content of the files/links found in $BOARDCLIP_DIR
+  COUNTER=0
+  for i in $FILES
+  do
+    # Populating an array with fullpaths of all files
+    BOARDCLIP_FILES[$COUNTER]="$i" && \
+    # This is a layout variant using '--buttons' instead of '--field'.
+    # It works as well but there is no way to create a grid with the '--columns' option,
+    # all buttons are positioned horizontally, from left to right.
+    #BOARDCLIP_YAD[$COUNTER]="--button \"\$(cat ${BOARDCLIP_FILES[$COUNTER]}|colrm $MAX_HORIZONTAL)\":\"bash -c 'xclip -i ${BOARDCLIP_FILES[$COUNTER]} && echo =\> Copied ${BOARDCLIP_FILES[$COUNTER]##*/}'\""
+    # The following creates the content each button.
+    # The actual text is piped to 'colrm' and 'head',
+    # that cut the given text horizontally (after the given position) and vertically (after the given line).
+    BOARDCLIP_YAD_BUTTONS[$COUNTER]="--field \"\$(cat ${BOARDCLIP_FILES[$COUNTER]} | colrm $MAX_HORIZONTAL | head -n $MAX_VERTICAL)\":fbtn"
+    # This creates the actual commands that are executed when buttons are pressed:
+    # - the full content of the pressed button is copied using 'xclip'
+    # - the filename is echoed (just the filename without fullpath)
+    BOARDCLIP_YAD_COMMANDS[$COUNTER]="\"bash -c '$XCLIP ${BOARDCLIP_FILES[$COUNTER]} && echo =\> Copied ${BOARDCLIP_FILES[$COUNTER]##*/}'\""
+    ((COUNTER++))
+  done
+}
+
+create_yad_buttons
+
+get_columns_round_down() {
+  bc <<< "sqrt(${#BOARDCLIP_FILES[@]})"
+}
+
+get_columns_round_up() {
+  VAR_INT=$(bc <<< "sqrt(${#BOARDCLIP_FILES[@]})")
+  VAR_FLOAT=$(bc -l <<< "sqrt(${#BOARDCLIP_FILES[@]})")
+  bc -l <<< "if ($VAR_FLOAT > $VAR_INT) $VAR_INT+1 else $VAR_INT"
+}
+
+
+# Columns are dinamically calculated as the square root of the total amount of files.
+# If the result is not an integer, then it can be rounded up or down.
+YAD_COLUMNS="--columns $(get_columns_round_down)"
+
+echo_yad_options() {
+  echo -e "'yad' is lauched with the following options:\n\n$YAD_OPTIONS $YAD_COLUMNS\n"
+}
+
+main() {
+  # Abort if 'yad' or 'xclip' are not present
+  check_yad && check_xclip
+  echo_yad_options
+  get_columns_round_down
+  get_columns_round_up
+
+  eval yad $YAD_OPTIONS $YAD_COLUMNS ${BOARDCLIP_YAD_BUTTONS[@]} ${BOARDCLIP_YAD_COMMANDS[@]}
+  
+}
+
+main
