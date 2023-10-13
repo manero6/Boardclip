@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 check_dependencies() {
   # 'yad' and 'xclip' must be installed or in PATH. Otherwise abort.
   # debug # for DEPENDENCY in yada xclippa
@@ -28,6 +29,21 @@ check_cfg_dir() {
       exit 1
     fi
   fi
+}
+
+check_github() {
+  # Return error and print a message if GitHub cannot be reached
+  # ping 5 times with an interval of 0.2 second (default is 1s)
+  # debug # if ! ping -i 0.2 -c 5 github.coma >/dev/null
+  if ! ping -i 0.2 -c 5 github.com >/dev/null
+  then
+    echo "GitHub cannot be reached! Is there a working internet connection?"
+    return 1
+  fi
+}
+
+download_examples() {
+ echo todo
 }
 
 BOARDCLIP_DIR=~/.config/Boardclip
@@ -102,7 +118,8 @@ echo_yad_options() {
 }
 
 main() {
-  # Abort if 'yad' or 'xclip' are not present
+  #check_github
+
   check_dependencies
   echo_yad_options
   get_columns_round_down
