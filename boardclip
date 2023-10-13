@@ -1,23 +1,17 @@
 #!/bin/bash
 
-check_yad() {
-  # 'yad' must be installed or in PATH. Otherwise abort.
-  if ! which yad >/dev/null
-  then
-    echo "'yad' not found!"
-    echo "Please install it, as Boardclip depends on it."
-    exit 127
-  fi
-}
-
-check_xclip() {
-  # 'xclip' must be installed or in PATH. Otherwise abort.
-  if ! which xclip >/dev/null
-  then
-    echo "'xclip' not found!"
-    echo "Please install it, as Boardclip depends on it."
-    exit 127
-  fi
+check_dependencies() {
+  # 'yad' and 'xclip' must be installed or in PATH. Otherwise abort.
+  # debug # for DEPENDENCY in yada xclippa
+  for DEPENDENCY in yad xclip
+  do
+    if ! which $DEPENDENCY >/dev/null
+    then
+      echo "'$DEPENDENCY' not found!"
+      echo "Please install it, as Boardclip depends on it."
+      exit 127
+    fi
+  done
 }
 
 check_cfg_dir() {
@@ -109,7 +103,7 @@ echo_yad_options() {
 
 main() {
   # Abort if 'yad' or 'xclip' are not present
-  check_yad && check_xclip
+  check_dependencies
   echo_yad_options
   get_columns_round_down
   get_columns_round_up
