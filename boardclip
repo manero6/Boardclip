@@ -1,5 +1,52 @@
 #!/bin/bash
 
+GITHUB_EXAMPLES_URL=https://raw.githubusercontent.com/manero6/Boardclip/main/examples
+
+check_downloader() {
+  # Check what downloader to use to get files from Github
+  if which wget &>/dev/null
+  then
+    echo "Downloading example files with wget"
+    echo "Saving example files under => $BOARDCLIP_DIR"
+    DOWNLOADER=wget
+  elif which curl &>/dev/null
+  then
+    echo "Downloading example files with curl"
+    echo "Saving example files under => $BOARDCLIP_DIR"
+    DOWNLOADER=curl
+  else
+    echo "No suitable downloader found!"
+    echo "Aborting..."
+    exit 1
+  fi
+}
+
+get_examples() {
+  # Get which downloader to use and set the download options
+  check_downloader
+  case $DOWNLOADER in
+    wget)
+      get_examples_downloader() {
+        echo wget -q $1 -O $2
+	echo -n "Downloading $1 => "
+      }
+      ;;
+    curl)
+      get_examples_downloader() {
+        echo curl -s $1 -o $2
+	echo -n "Downloading $1 => "
+      }
+      ;;
+  esac
+
+  # Download all examples from Github
+  for EXAMPLE in example{1..9}
+  do
+    get_examples_downloader "$GITHUB_EXAMPLES_URL/$EXAMPLE" "$BOARDCLIP_DIR/$EXAMPLE" && echo "Done!"
+  done
+}
+
+get_examples
 
 check_dependencies() {
   # 'yad' and 'xclip' must be installed or in PATH. Otherwise abort.
